@@ -70,6 +70,9 @@ struct ContentView: View {
                 .preferredColorScheme(.dark)
                 .cueFirstClick()
         }
+        .sheet(isPresented: $model.browserSheet, onDismiss: { model.scheduleAnswer() }) {
+            BrowserCaptureView(session: model).cueFirstClick()
+        }
         .confirmationDialog("Clear this conversation?", isPresented: $confirmClear, titleVisibility: .visible) {
             Button("Clear conversation", role: .destructive) { model.clearSession() }
             Button("Cancel", role: .cancel) {}
@@ -81,6 +84,12 @@ struct ContentView: View {
             Image(systemName: "waveform").font(.system(size: 18, weight: .medium)).foregroundStyle(accent)
             Text("cue").font(.system(size: 24, weight: .semibold, design: .rounded))
             Spacer()
+            Button { model.openBrowserCapture() } label: {
+                Label("Read browser", systemImage: "camera.viewfinder")
+            }.buttonStyle(.bordered).controlSize(.small)
+                .disabled(model.generating || model.importing)
+                .keyboardShortcut("b", modifiers: [.command, .shift])
+                .help("Capture a browser question · ⌘⇧B")
             HStack(spacing: 8) {
                 Image(systemName: "circle.lefthalf.filled")
                 Text("Backdrop").font(.system(size: 11))
@@ -185,7 +194,7 @@ struct ContentView: View {
                     Button("Unlock saved key") { Task { await model.loadSavedKey() } }
                         .font(.system(size: 11))
                 }
-                Text("Your attachment stays saved on this Mac until removed. Your prompt, resume text, and recent questions are sent to OpenAI for answers. API billing is separate. Audio uses Apple Speech, on-device when available. No recordings are saved.")
+                Text("Your attachment stays saved on this Mac until removed. Your prompt, resume text, selected browser screenshot, and recent questions are sent to OpenAI for answers. API billing is separate. Audio uses Apple Speech, on-device when available. No recordings are saved.")
                     .font(.system(size: 11)).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
             }
             HStack(alignment: .top, spacing: 8) {
@@ -203,6 +212,19 @@ struct ContentView: View {
     private var heard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack { caption("INCOMING QUESTION"); Spacer(); if model.listening { Image(systemName: "waveform").foregroundStyle(accent) } }
+            if let shot = model.screenshot {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Label("Browser snapshot", systemImage: "photo")
+                        Spacer()
+                        Button { model.removeScreenshot() } label: { Image(systemName: "xmark.circle.fill") }
+                            .buttonStyle(.plain).accessibilityLabel("Remove browser screenshot")
+                    }
+                    Text(shot.title).lineLimit(2)
+                    Text("Captured \(shot.capturedAt.formatted(date: .omitted, time: .shortened)) · Included with follow-ups")
+                        .foregroundStyle(muted)
+                }.font(.system(size: 11)).padding(10).background(card, in: RoundedRectangle(cornerRadius: 8))
+            }
             Text(model.pending.isEmpty ? (model.listening ? "Listening for the next question…" : "Start listening, or type a question below.") : model.pending)
                 .font(.system(size: 14)).foregroundStyle(model.pending.isEmpty ? muted : Color(white: 0.92))
                 .lineSpacing(4).frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
@@ -230,6 +252,9 @@ struct ContentView: View {
                             .help("Time from sending the API request to receiving the first text; excludes transcription and the pause before sending.")
                     }
                 }.font(.system(size: 10, design: .monospaced)).foregroundStyle(muted)
+                if let title = turn.screenshotTitle {
+                    Label(title, systemImage: "photo").font(.system(size: 11)).foregroundStyle(muted).lineLimit(1)
+                }
                 Text(turn.question).font(.system(size: 12)).foregroundStyle(muted).lineLimit(3)
                 Text(turn.answer.isEmpty ? (model.generating ? "Thinking through your question…" : "No completed answer. Send the question again to retry.") : turn.answer)
                     .font(.system(size: 18)).lineSpacing(6).textSelection(.enabled)

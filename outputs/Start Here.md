@@ -34,6 +34,20 @@ Cue opens as a wide horizontal window, with incoming questions on the left and s
 
 Use the **Backdrop** slider in the header to adjust the background opacity from 30% to 95%. Lower values let you see more of the speaker and their screen through Cue; text stays solid. The setting is remembered between launches. There is no background blur. Drag empty space in the header to reposition the window, for example along the bottom of your call. The setup button opens instructions, resume attachment, and API settings separately.
 
+## Browser questions (1.3.0)
+
+1. Make the question visible in your browser. Scroll or zoom so its text and any answer choices fit in the window.
+2. Click **Read browser** in Cue's header, or press **⌘⇧B** while Cue is focused.
+3. Choose the browser window and click **Capture preview**. Review the exact image before sending. Use **Retake screenshot** if the page changed.
+4. Click **Answer screenshot**. Cue sends the image with your instructions, résumé, and recent conversation to your selected model, then streams the answer. If needed, unlock your saved API key in Setup and send the retained question with ⌘Return.
+5. Follow-ups can use the same screenshot. The **Browser snapshot** label shows its title and capture time. Click its × to remove it, capture another window to replace it, or clear the conversation to discard it.
+
+Only the selected browser window is captured, including its visible browser chrome. The image is a static snapshot: it does not update as you scroll or change tabs. No continuous screen monitoring, browser extension, or saved screenshot file is used. Each answer while the snapshot is attached includes that image; image input adds API usage. Screenshots are reduced to a maximum 2,048-pixel long edge for transfer speed. Enlarge tiny text in the browser before capture.
+
+This uses the existing **Screen & System Audio Recording** permission. System-audio-only permission is insufficient. Browser windows must be open on the current desktop; restore minimized windows and refresh the list if needed. Common Safari, Chrome, Firefox, Edge, Brave, Arc, Dia, Opera, Vivaldi, Orion, and Zen app identifiers are recognized. The selected model must support image inputs; Cue displays any API rejection and does not silently change models.
+
+If several questions are visible, type which question you mean in Cue's question field before opening Read browser. The app sends screenshots through the [OpenAI image-input format](https://developers.openai.com/api/docs/guides/images-vision). Screenshot text is treated as task content, and the model is instructed to request a clearer image when the question is unreadable.
+
 ## During a call
 
 - **Auto-answer** generates after approximately 0.9 seconds without a transcript change in Fast answers mode (2.2 seconds with Fast answers off). Longer pauses within a question can trigger early; turn Auto-answer off and press **⌘Return** for manual timing.
@@ -52,9 +66,9 @@ Cue has a floating window and no Dock icon, but **it is not guaranteed invisible
 
 - Your instructions are saved in local app preferences. The API key is saved only in Keychain and can be removed in Setup.
 - Extracted attachment text and its filename are saved in ~/Library/Application Support/Cue/attachment.json until you remove the attachment. Conversation history remains in memory and disappears when you quit. Original files are never changed.
-- Answer requests send your instructions, extracted resume text, the current question, and bounded recent conversation to OpenAI using HTTPS. Requests set `store: false`; provider retention policies still apply.
+- Answer requests send your instructions, extracted resume text, the current question, any explicitly selected browser snapshot, and bounded recent conversation to OpenAI using HTTPS. Requests set `store: false`; provider retention policies still apply.
 - Audio goes through Apple Speech. Cue requests on-device recognition when the recognizer supports it; otherwise Apple may process it online. Apple Speech determines on-device availability when listening starts.
-- Cue does not save or upload screenshots, video, or audio recording files. It registers only an audio output with ScreenCaptureKit.
+- Cue does not save screenshots, video, or audio recording files. Listening registers only an audio output with ScreenCaptureKit; Read browser separately takes a single window screenshot on demand. A reviewed snapshot is uploaded to OpenAI when you choose Answer screenshot, and is included in follow-up requests until removed.
 
 ## If something does not work
 
@@ -89,3 +103,7 @@ If recording permission is enabled but fails after an update, macOS may still be
 Reattach your document once after updating: older releases did not save it between launches. Open “View extracted document text” to verify the facts Cue has read. Supported formats are text-based PDF, DOCX, TXT, and RTF, up to 10 MB and 40,000 characters. The full accepted text is included with every answer request. A relevant document fact does not have to be repeated in your prompt. Explicit factual corrections in your prompt still take priority.
 
 The window now accepts the first click on controls while another app is active, and decorative borders do not intercept pointer input. Local regression checks cover Word paragraphs, tables, Unicode, attachment restore/removal, invalid files, and document-only facts in the outgoing request. Live model behavior and inactive-window clicks were not verified in this update because computer control timed out.
+
+## Browser-feature verification
+
+The 1.3.0 release build and local regression checks passed. Tests cover JPEG preparation and dimensions, browser filtering, image request structure, résumé and prior-turn context, follow-up image inclusion, invalid input rejection, and unchanged text-only requests. Computer-control timeouts prevented verifying the live Cue capture/preview interface. No screenshot was sent to OpenAI during these checks, so actual image-based answers remain to be verified with your API access.

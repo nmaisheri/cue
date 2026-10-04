@@ -1,5 +1,6 @@
 import Foundation
 import CueCore
+import AppKit
 
 func XCTAssertEqual<T: Equatable>(_ a: T, _ b: T, file: StaticString = #file, line: UInt = #line) { precondition(a == b, "Expected \(b), got \(a)", file: file, line: line) }
 func XCTAssertTrue(_ value: Bool, file: StaticString = #file, line: UInt = #line) { precondition(value, file: file, line: line) }
@@ -16,7 +17,8 @@ struct CoreTests {
         checks.testContextBoundsAndFailedAnswersAreExcluded()
         try checks.testModelAndSpeedReachRequest()
         try checks.testAttachmentImportPersistenceAndPayload()
-        print("PASS: DOCX extraction, attachment persistence/removal, document facts in request, model selection, reasoning disabled, speed settings, transcript revisions, stream parsing/errors, follow-up context, bounded history")
+        try checks.testScreenshotRequests()
+        print("PASS: screenshot payloads, browser filtering, image bounds, DOCX extraction, attachment persistence/removal, document facts in request, model selection, reasoning disabled, speed settings, transcript revisions, stream parsing/errors, follow-up context, bounded history")
     }
     func testRecognitionRevisionsAndRotationDoNotDuplicateWords() {
         var ledger = TranscriptLedger()
@@ -101,6 +103,48 @@ struct CoreTests {
         let broken = directory.appendingPathComponent("broken.docx")
         try Data("not a word document".utf8).write(to: broken)
         XCTAssertThrowsError(try ResumeReader.read(broken))
+    }
+
+    func testScreenshotRequests() throws {
+        let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 32, pixelsHigh: 16,
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+        let image = BrowserImage(jpeg: try BrowserImage.encode(bitmap.cgImage!), title: "Synthetic browser question")
+        XCTAssertTrue(NSImage(data: image.jpeg) != nil)
+        let messages = AnswerContext.messages(prompt: "Keep it concise", resume: "Built a solar dashboard",
+            turns: [Turn(question: "Previous question", answer: "Previous answer")], question: "Read the visible question")
+        let data = try GenerationSettings.payload(model: .sol, fast: true, messages: messages, screenshot: image)
+        let body = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        let sent = body["messages"] as! [[String: Any]]
+        XCTAssertEqual(body["model"] as? String, "gpt-6-sol")
+        XCTAssertEqual(body["stream"] as? Bool, true)
+        XCTAssertTrue((sent[0]["content"] as! String).contains("Built a solar dashboard"))
+        XCTAssertEqual(sent[1]["content"] as? String, "Previous question")
+        let parts = sent.last!["content"] as! [[String: Any]]
+        XCTAssertEqual(parts[0]["text"] as? String, "Read the visible question")
+        XCTAssertEqual(parts[1]["type"] as? String, "image_url")
+        let url = parts[1]["image_url"] as! [String: String]
+        XCTAssertEqual(url["detail"], "high")
+        XCTAssertEqual(url["url"], "data:image/jpeg;base64," + image.jpeg.base64EncodedString())
+        let plain = try GenerationSettings.payload(model: .sol, fast: true, messages: messages)
+        let plainBody = try JSONSerialization.jsonObject(with: plain) as! [String: Any]
+        XCTAssertEqual(plainBody["messages"] as? [[String: String]], messages)
+        let followup = AnswerContext.messages(prompt: "", resume: "", turns: [], question: "Explain option B")
+        let followData = try GenerationSettings.payload(model: .sol, fast: false, messages: followup, screenshot: image)
+        XCTAssertTrue(String(data: followData, encoding: .utf8)!.contains("image_url"))
+        XCTAssertThrowsError(try GenerationSettings.payload(model: .sol, fast: true, messages: [], screenshot: image))
+        XCTAssertThrowsError(try GenerationSettings.payload(model: .sol, fast: true, messages: messages,
+            screenshot: BrowserImage(jpeg: Data(), title: "Empty")))
+        XCTAssertThrowsError(try BrowserImage.dimensions(width: 0, height: 100))
+        XCTAssertThrowsError(try BrowserImage.dimensions(width: .infinity, height: 100))
+        let (w, h) = try BrowserImage.dimensions(width: 4000, height: 2000)
+        XCTAssertEqual(w, 2048); XCTAssertEqual(h, 1024)
+        XCTAssertTrue(BrowserApps.includes("com.apple.Safari"))
+        XCTAssertTrue(BrowserApps.includes("com.google.Chrome"))
+        XCTAssertTrue(BrowserApps.includes("org.mozilla.firefox"))
+        XCTAssertFalse(BrowserApps.includes("local.cue.interview"))
+        XCTAssertFalse(BrowserApps.includes("com.apple.finder"))
+        XCTAssertFalse(BrowserApps.includes("com.google.Chrome.helper"))
     }
 
 }

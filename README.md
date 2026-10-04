@@ -4,11 +4,12 @@ A lightweight native macOS assistant with a horizontal, translucent floating win
 
 ## Current version
 
-**1.2.2 (build 5)**. Download [Cue-Mac.zip](outputs/Cue-Mac.zip), extract it, and follow [Start Here](outputs/Start%20Here.md). The included binary is for Apple silicon on macOS 14 or later and is locally signed, not notarized.
+**1.3.0 (build 6)**. Download [Cue-Mac.zip](outputs/Cue-Mac.zip), extract it, and follow [Start Here](outputs/Start%20Here.md). The included binary is for Apple silicon on macOS 14 or later and is locally signed, not notarized.
 
 ## Features
 
 - Incoming computer audio through ScreenCaptureKit and English transcription through Apple Speech.
+- On-demand browser-window screenshots with preview, image-based questions, and follow-up context.
 - Streaming answers, model selection, a fast-answer preset, and follow-up context.
 - Custom instructions and PDF, DOCX, RTF, or TXT attachments, with extracted-text preview and local persistence.
 - Horizontal floating layout, adjustable backdrop opacity, menu bar controls, and a global show/hide shortcut.
@@ -48,4 +49,4 @@ swift run --disable-sandbox CueChecks
 
 Checks cover transcript revisions, streamed response parsing, follow-up context, model and speed payloads, Word paragraph/table extraction, attachment persistence/removal, invalid documents, and document-only facts included in requests.
 
-The current build and regression checks passed locally. Real model responses and the latest inactive-window click change have not been verified end to end; see the guide for the precise verification history. API model availability depends on your account.
+The current build and regression checks passed locally, including image request structure, browser filtering, JPEG preparation, and text-only compatibility. Live capture/preview, real image-based model responses, and the inactive-window click change have not been verified end to end; see the guide for the precise verification history. API model availability depends on your account.

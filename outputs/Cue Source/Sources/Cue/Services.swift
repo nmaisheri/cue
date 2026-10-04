@@ -43,13 +43,13 @@ enum KeyStore {
 
 struct AnswerClient {
     var session: URLSession = .shared
-    func stream(key: String, model: AnswerModel, fast: Bool, messages: [[String: String]], onText: @escaping @MainActor (String) -> Void) async throws {
+    func stream(key: String, model: AnswerModel, fast: Bool, messages: [[String: String]], screenshot: BrowserImage? = nil, onText: @escaping @MainActor (String) -> Void) async throws {
         var request = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
         request.httpMethod = "POST"
         request.timeoutInterval = 45
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try GenerationSettings.payload(model: model, fast: fast, messages: messages)
+        request.httpBody = try GenerationSettings.payload(model: model, fast: fast, messages: messages, screenshot: screenshot)
         let (bytes, response) = try await session.bytes(for: request)
         guard let http = response as? HTTPURLResponse else { throw CueError.message("No response from the answer service.") }
         guard (200...299).contains(http.statusCode) else {

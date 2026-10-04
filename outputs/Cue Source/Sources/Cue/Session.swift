@@ -34,6 +34,8 @@ final class Session: ObservableObject {
     @Published var speechMode = "Incoming computer audio"
     @Published var setup = true
     @Published var importing = false
+    @Published var browserSheet = false
+    @Published var screenshot: BrowserImage?
     private let attachmentStore = AttachmentStore()
     private var savedKey = ""
     private let audio = AudioListener()
@@ -155,7 +157,7 @@ final class Session: ObservableObject {
 
     func scheduleAnswer() {
         debounce?.cancel()
-        guard autoAnswer, listening, hasKey, !generating,
+        guard autoAnswer, listening, hasKey, !generating, !browserSheet,
               pending.split(whereSeparator: { $0.isWhitespace }).count >= 2 else { return }
         let delay = GenerationSettings.pauseNanoseconds(fast: fastAnswers)
         debounce = Task { [weak self] in
@@ -165,23 +167,39 @@ final class Session: ObservableObject {
         }
     }
 
-    func answer() {
+    func openBrowserCapture() {
+        guard !generating else { return }
+        debounce?.cancel(); browserSheet = true
+    }
+
+    func answerBrowser(_ image: BrowserImage) {
+        screenshot = image
+        browserSheet = false
         let typed = typedQuestion.trimmingCharacters(in: .whitespacesAndNewlines)
-        let question = typed.isEmpty ? pending : typed
+        answer(questionOverride: typed.isEmpty ? "Read the question visible in the browser screenshot and answer it directly. If there are several questions, ask which one to answer." : typed)
+    }
+
+    func removeScreenshot() { screenshot = nil }
+
+    func answer(questionOverride: String? = nil) {
+        let typed = typedQuestion.trimmingCharacters(in: .whitespacesAndNewlines)
+        let question = questionOverride ?? (typed.isEmpty ? pending : typed)
         guard !question.isEmpty else { return }
-        guard hasKey else { error = "Add your OpenAI API key in Setup to generate answers."; setup = true; return }
+        guard hasKey else { typedQuestion = question; error = "Add your OpenAI API key in Setup to generate answers."; setup = true; return }
         guard !generating, !importing else { return }
         debounce?.cancel()
         error = nil
         let messages = AnswerContext.messages(prompt: prompt, resume: resume, turns: turns, question: question, fast: fastAnswers)
-        if typed.isEmpty {
+        if typed.isEmpty && questionOverride == nil {
             audio.checkpoint()
             ledger.reset(); pending = ""
         } else { typedQuestion = "" }
+        let image = screenshot
         let chosenModel = selectedModel
         let fast = fastAnswers
         var turn = Turn(question: question)
         turn.modelID = chosenModel.rawValue
+        turn.screenshotTitle = image?.title
         turns.append(turn)
         if turns.count > 40 { turns.removeFirst(turns.count - 40) }
         generating = true
@@ -192,7 +210,7 @@ final class Session: ObservableObject {
             guard let self else { return }
             let started = ProcessInfo.processInfo.systemUptime
             do {
-                try await AnswerClient().stream(key: credential, model: chosenModel, fast: fast, messages: messages) { [weak self] text in
+                try await AnswerClient().stream(key: credential, model: chosenModel, fast: fast, messages: messages, screenshot: image) { [weak self] text in
                     guard let self, self.answerID == token,
                           let index = self.turns.firstIndex(where: { $0.id == turn.id }) else { return }
                     if !text.isEmpty && self.turns[index].firstTextSeconds == nil {
@@ -219,7 +237,7 @@ final class Session: ObservableObject {
 
     func clearSession() {
         debounce?.cancel(); cancelAnswer()
-        audio.checkpoint(); ledger.reset(); pending = ""; typedQuestion = ""; turns = []; error = nil
+        audio.checkpoint(); ledger.reset(); pending = ""; typedQuestion = ""; turns = []; screenshot = nil; error = nil
         debounce?.cancel()
     }
 

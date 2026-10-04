@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0
+
+- Add Read browser and ⌘⇧B with a browser-window chooser, capture preview, retake, and explicit Answer screenshot action.
+- Send the selected image with instructions, résumé, and recent conversation through the existing streaming answer request.
+- Retain one in-memory snapshot for follow-ups with title, capture time, and removal controls; clearing the conversation also removes it.
+- Capture only the selected window, cap the image long edge at 2,048 pixels, and keep all screenshots off disk.
+- Pause automatic answer scheduling while selecting a screenshot, and preserve the question when API-key setup is needed.
+- Add image-payload, browser-filtering, JPEG, bounds, and text-only compatibility checks.
+
 ## 1.2.2
 
 - Persist extracted attachment text and filename across launches.
