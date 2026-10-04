@@ -1,0 +1,19 @@
+# Local development and generated copies
+work/
+.build/
+.swiftpm/
+.DS_Store
+**/.DS_Store
+outputs/Cue.app/
+outputs/Cue-Source.zip
+
+# Private configuration, attachments, and diagnostics
+.env
+.env.*
+*.pem
+*.key
+*.log
+attachment.json
+*.aiff
+*.wav
+*.mp3

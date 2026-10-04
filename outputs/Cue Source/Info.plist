@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleExecutable</key><string>Cue</string>
+<key>CFBundleIdentifier</key><string>local.cue.interview</string>
+<key>CFBundleName</key><string>Cue</string>
+<key>CFBundleDisplayName</key><string>Cue</string>
+<key>CFBundleIconFile</key><string>Cue</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleShortVersionString</key><string>1.2.2</string>
+<key>CFBundleVersion</key><string>5</string>
+<key>LSMinimumSystemVersion</key><string>14.0</string>
+<key>LSUIElement</key><true/>
+<key>NSHighResolutionCapable</key><true/>
+<key>NSSpeechRecognitionUsageDescription</key><string>Cue transcribes incoming call audio so it can suggest answers. Apple Speech may process audio online when on-device recognition is unavailable.</string>
+<key>NSAudioCaptureUsageDescription</key><string>Cue listens to incoming computer audio to transcribe interview questions. It does not save audio recordings.</string>
+</dict></plist>
